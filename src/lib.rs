@@ -162,19 +162,19 @@ pub fn use_ws_context_provider_json<T>(cx: &ScopeState, url: &str, handler: impl
 where
     T: for<'de> Deserialize<'de>,
 {
-    let handler = move |msg| match msg {
-        Message::Text(text) => {
-            let json = serde_json::from_str::<T>(&text);
+    let handler = move |msg| {
+        let json = match msg {
+            Message::Text(text) => serde_json::from_str::<T>(&text),
+            Message::Bytes(bytes) => serde_json::from_slice::<T>(&bytes),
+        };
 
-            match json {
-                Ok(json) => handler(json),
-                Err(e) => log_err(&format!(
-                    "Error while deserializing websocket response: {}",
-                    e
-                )),
-            }
+        match json {
+            Ok(json) => handler(json),
+            Err(e) => log_err(&format!(
+                "Error while deserializing websocket response: {}",
+                e
+            )),
         }
-        Message::Bytes(_) => {}
     };
 
     use_ws_context_provider(cx, url, handler)
